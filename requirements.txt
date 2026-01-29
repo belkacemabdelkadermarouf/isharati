@@ -1,0 +1,3 @@
+flask
+reportlab
+speedtest-cli
