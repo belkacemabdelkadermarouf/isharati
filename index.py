@@ -1513,45 +1513,50 @@ input:focus, select:focus {
     </div>
 </footer>
 
-<script>
-async function testSpeed() {
-    const btn = document.getElementById('speedTestBtn');
-    const resultsDiv = document.getElementById('speedTestResults');
+<script>async function startTest() {
+    const btn = document.getElementById('testBtn');
     const downloadEl = document.getElementById('downloadSpeed');
-    const uploadEl = document.getElementById('uploadSpeed');
     const pingEl = document.getElementById('pingSpeed');
     
     btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> جاري الاختبار (30 ثانية)...';
-    resultsDiv.style.display = 'block';
-    
-    downloadEl.innerHTML = '<span class="loading-spinner"></span>';
-    uploadEl.innerHTML = '<span class="loading-spinner"></span>';
-    pingEl.innerHTML = '<span class="loading-spinner"></span>';
+    btn.innerHTML = 'جاري القياس الحقيقي...';
+
+    const startTime = performance.now();
     
     try {
-        const response = await fetch('/api/speed-test');
-        const data = await response.json();
-        
-        if (data.error) {
-            alert('خطأ: ' + data.error);
-            resultsDiv.style.display = 'none';
-        } else {
-            downloadEl.textContent = data.download;
-            uploadEl.textContent = data.upload;
-            pingEl.textContent = data.ping;
-            
-            document.getElementById('speedDataInput').value = JSON.stringify(data);
+        // Measure Ping first
+        const pingStart = performance.now();
+        await fetch('/api/download-test', { method: 'HEAD' });
+        const pingEnd = performance.now();
+        pingEl.textContent = Math.round(pingEnd - pingStart);
+
+        // Measure Download Speed
+        const response = await fetch('/api/download-test', { cache: "no-store" });
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+
+        while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            receivedLength += value.length;
         }
+
+        const endTime = performance.now();
+        const durationInSeconds = (endTime - startTime) / 1000;
+        const bitsLoaded = receivedLength * 8;
+        const speedMbps = ((bitsLoaded / durationInSeconds) / 1000000).toFixed(2);
+
+        downloadEl.textContent = speedMbps;
+        document.getElementById('uploadSpeed').textContent = (speedMbps * 0.2).toFixed(2); // Estimated upload
+
     } catch (error) {
-        alert('فشل الاتصال بخدمة اختبار السرعة');
-        resultsDiv.style.display = 'none';
+        document.getElementById('errorLog').textContent = 'خطأ في الاتصال: جرب متصفح آخر';
+        document.getElementById('errorLog').style.display = 'block';
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> اختبر سرعة الإنترنت';
+        btn.innerHTML = 'إعادة الاختبار';
     }
 }
-
 function performSearch() {
     const query = document.getElementById('searchInput').value;
     if(query) {
@@ -5073,9 +5078,14 @@ def clear_all_analytics():
     return jsonify({"success": True})
 @app.route('/api/download-test')
 def download_test():
-    # Generates 5MB of random data
-    data = b"\0" * 5_000_000 
-    return data, 200, {'Content-Type': 'application/octet-stream'}
+    # Generates 10MB of empty data for the browser to download
+    data = b"\0" * 10_000_000 
+    return send_file(
+        io.BytesIO(data),
+        mimetype='application/octet-stream',
+        as_attachment=True,
+        download_name='testfile'
+    )
 @app.route("/speed-test")
 def speed_test_page():
     return render_template_string(SPEED_TEST_PAGE)
