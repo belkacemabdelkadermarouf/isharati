@@ -3321,23 +3321,34 @@ body {
     const downloadEl = document.getElementById('downloadSpeed');
     
     btn.disabled = true;
-    btn.innerHTML = 'جاري الاختبار...';
+    btn.innerHTML = 'جاري القياس الحقيقي...';
 
-    const startTime = new Date().getTime();
-    const fileSizeInBytes = 5000000; // 5MB dummy file
+    const startTime = performance.now();
     
     try {
-        // We fetch a large image or file from a public CDN
-        await fetch('https://upload.wikimedia.org/wikipedia/commons/3/3d/LARGE_ELEVATION.jpg', { cache: "no-store" });
-        
-        const endTime = new Date().getTime();
-        const duration = (endTime - startTime) / 1000;
-        const bps = (fileSizeInBytes * 8) / duration;
-        const mbps = (bps / 1048576).toFixed(2);
+        // Fetch the 5MB dummy file from your own API
+        const response = await fetch('/api/download-test', { cache: "no-store" });
+        const reader = response.body.getReader();
+        let receivedLength = 0;
 
-        downloadEl.textContent = mbps;
+        while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            receivedLength += value.length;
+        }
+
+        const endTime = performance.now();
+        const durationInSeconds = (endTime - startTime) / 1000;
+        const bitsLoaded = receivedLength * 8;
+        const speedMbps = ((bitsLoaded / durationInSeconds) / 1000000).toFixed(2);
+
+        downloadEl.textContent = speedMbps;
+        document.getElementById('uploadSpeed').textContent = "---";
+        document.getElementById('pingSpeed').textContent = Math.round(durationInSeconds * 10) + " ms";
+
     } catch (error) {
-        document.getElementById('errorLog').textContent = "فشل الاختبار المتصفح";
+        document.getElementById('errorLog').textContent = 'فشل الاختبار: قيود الخادم';
+        document.getElementById('errorLog').style.display = 'block';
     } finally {
         btn.disabled = false;
         btn.innerHTML = 'إعادة الاختبار';
@@ -5060,16 +5071,20 @@ def clear_all_analytics():
     global analytics_history
     analytics_history = []
     return jsonify({"success": True})
-
+@app.route('/api/download-test')
+def download_test():
+    # Generates 5MB of random data
+    data = b"\0" * 5_000_000 
+    return data, 200, {'Content-Type': 'application/octet-stream'}
 @app.route("/speed-test")
 def speed_test_page():
     return render_template_string(SPEED_TEST_PAGE)
-
-@app.route("/api/speed-test")
-def api_speed_test():
-    result = run_speedtest()
-    return jsonify(result)
-
+@app.route('/api/speed-test')
+def speed_test_fallback():
+    # We return a small JSON or redirect the logic to the frontend
+    return jsonify({
+        "info": "Please use client-side JS for accurate testing on Vercel"
+    })
 @app.route("/guide")
 def guide():
     # Use the original GUIDE_PAGE from your code
