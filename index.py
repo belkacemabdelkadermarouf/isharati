@@ -1219,8 +1219,8 @@ input:focus, select:focus {
 
 <div class="logo">
     <img 
-        src="{{ url_for('static', filename='logo1.png') }}" 
-        alt="Logo"
+<link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
+<img src="logo2.png">        alt="Logo"
         style="height: 50px; width: center;"
     >
 </div>
@@ -5127,3 +5127,4 @@ if __name__ == "__main__":
     print("📊 Analytics: http://localhost:5000/analytics")
     print("=" * 60)
     app.run(debug=True, port=5000, host='0.0.0.0')
+
