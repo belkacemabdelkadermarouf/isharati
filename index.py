@@ -3316,43 +3316,31 @@ body {
         }
     };
 </script>
-<script>
-async function startTest() {
+<script>async function startTest() {
     const btn = document.getElementById('testBtn');
-    const errorLog = document.getElementById('errorLog');
     const downloadEl = document.getElementById('downloadSpeed');
-    const uploadEl = document.getElementById('uploadSpeed');
-    const pingEl = document.getElementById('pingSpeed');
     
     btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner"></span> جاري الاختبار...';
-    errorLog.style.display = 'none';
-    
-    downloadEl.innerHTML = '<span class="loading-spinner"></span>';
-    uploadEl.innerHTML = '<span class="loading-spinner"></span>';
-    pingEl.innerHTML = '<span class="loading-spinner"></span>';
+    btn.innerHTML = 'جاري الاختبار...';
+
+    const startTime = new Date().getTime();
+    const fileSizeInBytes = 5000000; // 5MB dummy file
     
     try {
-        const response = await fetch('/api/speed-test');
-        const data = await response.json();
+        // We fetch a large image or file from a public CDN
+        await fetch('https://upload.wikimedia.org/wikipedia/commons/3/3d/LARGE_ELEVATION.jpg', { cache: "no-store" });
         
-        if (data.error) {
-            errorLog.textContent = data.error;
-            errorLog.style.display = 'block';
-            downloadEl.textContent = '0.0';
-            uploadEl.textContent = '-';
-            pingEl.textContent = '-';
-        } else {
-            downloadEl.textContent = data.download;
-            uploadEl.textContent = data.upload;
-            pingEl.textContent = data.ping;
-        }
+        const endTime = new Date().getTime();
+        const duration = (endTime - startTime) / 1000;
+        const bps = (fileSizeInBytes * 8) / duration;
+        const mbps = (bps / 1048576).toFixed(2);
+
+        downloadEl.textContent = mbps;
     } catch (error) {
-        errorLog.textContent = 'فشل الاتصال بخادم الاختبار';
-        errorLog.style.display = 'block';
+        document.getElementById('errorLog').textContent = "فشل الاختبار المتصفح";
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-redo"></i> إعادة الاختبار';
+        btn.innerHTML = 'إعادة الاختبار';
     }
 }
 </script>
