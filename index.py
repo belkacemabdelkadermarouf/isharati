@@ -52,9 +52,10 @@ def run_speedtest():
         
         # قياس التحميل والرفع
         # ملاحظة: العمليات التالية تأخذ وقتاً (حوالي 20-30 ثانية)
-        download_speed = st.download() / 1_000_000
-        upload_speed = st.upload() / 1_000_000
-        ping = st.results.ping
+# Sanity limits (realistic mobile network limits)
+download_speed = min(download_speed, 300)   # Mbps
+upload_speed = min(upload_speed, 100)       # Mbps
+ping = max(ping, 5)                          # ms
         
         return {
             'download': round(download_speed, 2),
